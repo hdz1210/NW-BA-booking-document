@@ -59,7 +59,7 @@ sequenceDiagram
         KT->>App: Mở chi tiết giao dịch, kiểm tra số tiền & bill
         alt Tiền nổi đủ & đúng cú pháp
             KT->>App: Nhập Mã FT ngân hàng + Chọn "Đã nhận đủ tiền" -> Bấm "Xác nhận đối soát"
-            App->>>Admin: Cập nhật trạng thái "ĐÃ ĐỐI SOÁT", chuyển sang Admin Tab 1
+            App->>Admin: Cập nhật trạng thái "ĐÃ ĐỐI SOÁT", chuyển sang Admin Tab 1
         else Tiền thiếu / Sai cú pháp / Chưa nổi
             KT->>App: Chọn "Cần tra soát" + Nhập nội dung cần làm rõ
             App-->>Sales: Thông báo cảnh báo tra soát trên Dashboard
