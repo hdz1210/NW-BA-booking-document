@@ -1,8 +1,9 @@
 # TÀI LIỆU PHÂN TÍCH YÊU CẦU NGHIỆP VỤ (BA SPECIFICATION)
+
 # PHÂN HỆ SALES - PHẦN 2: QUY TRÌNH HẬU BOOKING, KHỚP CĂN, LOCK CĂN ĐỘC QUYỀN & HOA HỒNG
 
-**Dự án:** Hệ thống Quản lý Booking & Giao dịch BĐS (NewWay Booking)  
-**Phân hệ:** Chuyên viên Kinh doanh (Sales Module)  
+**Dự án:** Hệ thống Quản lý Booking & Giao dịch BĐS (NewWay Booking)
+**Phân hệ:** Chuyên viên Kinh doanh (Sales Module)
 **Mã màn hình:** `SALES_POST_BOOKING_AND_INVENTORY`
 
 ---
@@ -10,6 +11,7 @@
 ## 1. TỔNG QUAN (OVERVIEW)
 
 ### 1.1. Mục tiêu nghiệp vụ
+
 - Đặc tả toàn bộ các thao tác, màn hình xử lý và quy tắc nghiệp vụ của Sales sau thời điểm bấm "Gửi Booking":
   1. Theo dõi trạng thái duyệt tiền từ Kế toán và hồ sơ từ Admin.
   2. Xử lý các kịch bản kết quả khi CĐT mở bán ráp căn (Lên cọc, Hoàn cọc thiện chí, Tra soát/dồn tiền sang căn khác).
@@ -28,15 +30,15 @@ flowchart TD
 
     subgraph S2["2. XỬ LÝ KẾT QUẢ KHI CĐT MỞ BÁN / RÁP CĂN"]
         A4 --> B1{"Kết quả Ráp căn từ CĐT"}
-        
+      
         %% Nhánh Khớp căn
         B1 -- "KHỚP CĂN THÀNH CÔNG" --> B2{"Khách hàng quyết định"}
         B2 -- "1. Chốt Mua" --> C1["Sales bấm: Xác nhận thành CỌC"]
         C1 --> C2["In Phiếu Đặt Cọc đưa khách ký -> Admin duyệt -> GIAO DỊCH HỢP LỆ"]
-        
+      
         B2 -- "2. Rút cọc (Không mua)" --> D1["Sales bấm: Yêu cầu HOÀN BOOKING"]
         D1 --> D2["Hệ thống xuất Phiếu Hoàn tiền -> Khách ký -> Kế toán chuyển tiền hoàn"]
-        
+      
         B2 -- "3. Đổi căn khác" --> E1["Sales bấm: TRA SOÁT / DỒN TIỀN"]
         E1 --> E2["Sales chọn Mã căn mới cùng dự án -> Kế toán đối soát chuyển mã FT"]
 
@@ -48,10 +50,10 @@ flowchart TD
 
     subgraph S3["3. THAO TÁC TRÊN BẢNG HÀNG ĐỘC QUYỀN (LOCK CĂN)"]
         L1["Sales truy cập Bảng hàng / Stacking"] --> L2{"Chọn hình thức Lock căn"}
-        
+      
         %% Lock Cọc
         L2 -- "Lock Cọc (Hạn 30p)" --> L3["Tạo QR cọc -> Khách thanh toán -> Up bill -> GIAO DỊCH HỢP LỆ"]
-        
+      
         %% Lock Cọc Thiện Chí
         L2 -- "Lock Cọc Thiện Chí (Hạn 24h)" --> L4["Giữ chỗ thiện chí 24h"]
         L4 --> L5{"Có Sales khác Lock đè cọc?"}
@@ -98,21 +100,23 @@ flowchart TD
 *Hình 2.1c: Modal Bổ Sung Hồ Sơ & Chứng Từ — Sales chọn loại chứng từ cần bổ sung (CCCD mặt sau, UNC, Giấy ủy quyền...), upload tệp đính kèm, ghi chú giải trình cho Admin.*
 
 #### D. Danh mục trạng thái Booking trên Dashboard
-| Trạng thái | Mã hiển thị | Ý nghĩa nghiệp vụ | Hành động khả dụng của Sales |
-| :--- | :---: | :--- | :--- |
-| **Chờ Kế toán check tiền** | `PENDING_PAYMENT` | Vừa gửi, đang đợi kế toán đối soát biến động số dư. | Xem chi tiết, Nhắc Kế toán. |
-| **Chờ Admin duyệt** | `PENDING_ADMIN` | Kế toán đã khớp mã FT, chờ Admin duyệt hồ sơ. | Xem chi tiết, Bổ sung ảnh nếu yêu cầu. |
-| **Booking hợp lệ** | `BOOKING_VALID` | Hồ sơ và tiền đã duyệt, sẵn sàng ráp căn. | In Phiếu cọc thiện chí cho khách ký. |
-| **Đã khớp căn** | `MATCHED` | CĐT đã ráp trúng mã căn cụ thể cho khách. | Chọn: *Lên Cọc* / *Hoàn tiền* / *Dồn tiền*.|
-| **Không khớp căn** | `UNMATCHED` | Không trúng căn trong đợt mở bán. | Chọn: *Yêu cầu Hoàn tiền* / *Dồn sang căn khác*.|
-| **Đã cọc hợp lệ** | `DEPOSITED_VALID` | Khách đã ký cọc mua căn thành công. | Bấm Tạo đề xuất Cơ chế hoa hồng. |
-| **Đã hoàn tiền** | `REFUNDED` | Kế toán đã chuyển tiền trả khách hoàn tất. | Xem UNC hoàn tiền, Đóng hồ sơ. |
+
+| Trạng thái                         |   Mã hiển thị   | Ý nghĩa nghiệp vụ                                              | Hành động khả dụng của Sales                          |
+| :----------------------------------- | :-----------------: | :----------------------------------------------------------------- | :---------------------------------------------------------- |
+| **Chờ Kế toán check tiền** | `PENDING_PAYMENT` | Vừa gửi, đang đợi kế toán đối soát biến động số dư. | Xem chi tiết, Nhắc Kế toán.                             |
+| **Chờ Admin duyệt**          |  `PENDING_ADMIN`  | Kế toán đã khớp mã FT, chờ Admin duyệt hồ sơ.            | Xem chi tiết, Bổ sung ảnh nếu yêu cầu.                |
+| **Booking hợp lệ**           |  `BOOKING_VALID`  | Hồ sơ và tiền đã duyệt, sẵn sàng ráp căn.               | In Phiếu cọc thiện chí cho khách ký.                  |
+| **Đã khớp căn**            |     `MATCHED`     | CĐT đã ráp trúng mã căn cụ thể cho khách.                | Chọn:*Lên Cọc* / *Hoàn tiền* / *Dồn tiền*.     |
+| **Không khớp căn**          |    `UNMATCHED`    | Không trúng căn trong đợt mở bán.                           | Chọn:*Yêu cầu Hoàn tiền* / *Dồn sang căn khác*. |
+| **Đã cọc hợp lệ**         | `DEPOSITED_VALID` | Khách đã ký cọc mua căn thành công.                        | Bấm Tạo đề xuất Cơ chế hoa hồng.                    |
+| **Đã hoàn tiền**           |    `REFUNDED`    | Kế toán đã chuyển tiền trả khách hoàn tất.               | Xem UNC hoàn tiền, Đóng hồ sơ.                        |
 
 ---
 
 ### 2.2. XỬ LÝ KẾT QUẢ MỞ BÁN / RÁP CĂN TỪ CĐT
 
-#### A. Kịch bản Khớp căn (Matched)
+#### A. Kịch bản Khớp căn 
+
 1. **Chốt Mua (Lên Cọc)**:
    - Sales bấm nút **"Xác nhận Chuyển Cọc"** $\rightarrow$ Admin in Phiếu đặt cọc $\rightarrow$ Sales đưa khách ký $\rightarrow$ Admin duyệt $\rightarrow$ Chuyển sang **`Giao dịch hợp lệ`**.
 2. **Không Mua (Rút cọc)**:
@@ -133,6 +137,7 @@ flowchart TD
 *Hình 2.2b: Sales yêu cầu hoàn tiền cọc cho khách — Hiển thị STK hoàn tiền đã khai trước, chọn lý do và ghi chú.*
 
 #### B. Kịch bản Không khớp căn (Unmatched)
+
 - Sales liên hệ khách hàng để chọn 1 trong 2 nút: **"Yêu cầu Hoàn Tiền"** hoặc **"Dồn sang căn khác"** đang trống.
 
 ##### Mockup: Modal Dồn Tiền Sang Căn Khác (Unmatched → Đổi căn)
@@ -146,7 +151,9 @@ flowchart TD
 ### 2.3. THAO TÁC TRÊN GIỎ HÀNG ĐỘC QUYỀN (LOCK CĂN & STACKING)
 
 #### A. Bộ Lọc Đa Tiêu Chí Bảng Hàng Stacking
+
 Hệ thống cung cấp thanh điều khiển lọc động đa cấp độ giúp Sales tra cứu giỏ hàng nhanh chóng:
+
 1. **Dự án**: Chọn theo Dự án mục tiêu (`NewWay Riverside`, `LUMIÈRE Riverside`, `Masteri Centre Point`, `Tất cả dự án`).
 2. **Phân khu**: Chọn Phân khu tương ứng (`Phân khu The Park`, `Phân khu The Oasis`, `Phân khu The West`, `Tất cả phân khu`).
 3. **Toà / Tháp**: Chọn Toà tháp theo phân khu (`Tháp Park 1`, `Tháp Park 2`, `Tháp West 1`, `Tháp Oasis 1`, `Tất cả toà`).
@@ -175,6 +182,7 @@ Hệ thống cung cấp thanh điều khiển lọc động đa cấp độ giú
 *Hình 2.3c: Kết quả lọc Dự án "LUMIÈRE Riverside" — Hiển thị Tháp West 1 (Phân khu The West) gồm Tầng 19 (Cao tầng) và Tầng 9 (Thấp tầng).*
 
 #### C. Hai hình thức Lock căn
+
 - **Hình thức 1: Lock Cọc (Hạn 30 phút)**:
   - Khách mua $\rightarrow$ Sales bấm Lock $\rightarrow$ Đếm ngược 30 phút $\rightarrow$ Khách nộp tiền $\rightarrow$ Kế toán khớp mã FT $\rightarrow$ Sales up UNC $\rightarrow$ Giao dịch hợp lệ.
 - **Hình thức 2: Lock Cọc Thiện Chí (Hạn 24 giờ)**:
@@ -187,6 +195,7 @@ Hệ thống cung cấp thanh điều khiển lọc động đa cấp độ giú
 *Hình 2.3d: Sales bấm vào căn Trống → Modal Lock Cọc hiện ra — Chọn hình thức Lock (Cọc 30p hoặc Thiện chí 24h), nhập thông tin khách hàng và ghi chú.*
 
 #### D. Quy trình Xử lý Ân hạn 30 phút khi bị Lock đè (Conflict Resolution)
+
 - Căn đang bị Lock Thiện Chí bởi **Sales A** mà có **Sales B** muốn Lock Cọc:
   - Hệ thống kích hoạt **30 phút Ân hạn** cho Sales A.
   - Trong 30 phút:
@@ -214,16 +223,18 @@ Hệ thống cung cấp thanh điều khiển lọc động đa cấp độ giú
 ## 3. QUY TẮC NGHIỆP VỤ (BUSINESS RULES & VALIDATIONS)
 
 ### 3.1. Các quy tắc xử lý nghiệp vụ (Business Rules - BR)
+
 - **BR-S04 (Thời hạn giữ Lock Cọc)**: Thời gian giữ thanh toán là 30 phút. Quá 30 phút không có xác nhận nhận tiền từ Kế toán, căn tự động nhả về trạng thái Trống.
 - **BR-S05 (Quy tắc Ưu tiên Cọc)**: Giao dịch Cọc luôn được ưu tiên hơn Cọc Thiện Chí. Khi có xung đột, thời gian ân hạn tối đa cho Sales cũ là 30 phút.
 - **BR-S06 (Điều kiện Khởi tạo Hoa hồng)**: Sales chỉ được tạo Đề xuất Hoa hồng khi căn hộ đạt trạng thái **`Giao dịch hợp lệ`**.
 
 ### 3.2. Ma trận Validation Rules & Cảnh báo
-| Hành động | Điều kiện kiểm tra (Validation Rules) | Cảnh báo / Xử lý hệ thống |
-| :--- | :--- | :--- |
-| **Lock Cọc** | Đếm ngược 30 phút thanh toán. | Còn 5 phút: Bắn cảnh báo đỏ. Hết 30p: Căn tự động mở lại. |
-| **Bị Lock Đè** | Căn thiện chí có yêu cầu cọc đè. | Thông báo đỏ: *"Căn của bạn đang bị yêu cầu cọc đè. Bạn có 30 phút để nâng cấp cọc."* |
-| **Đề xuất Hoa hồng** | Tổng tỷ lệ phân bổ chia sẻ không vượt quá trần chính sách. | *"Tổng tỷ lệ phân chia hoa hồng vượt quá mức quy định cho phép."* |
+
+| Hành động                   | Điều kiện kiểm tra (Validation Rules)                               | Cảnh báo / Xử lý hệ thống                                                                              |
+| :----------------------------- | :---------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------- |
+| **Lock Cọc**            | Đếm ngược 30 phút thanh toán.                                     | Còn 5 phút: Bắn cảnh báo đỏ. Hết 30p: Căn tự động mở lại.                                      |
+| **Bị Lock Đè**        | Căn thiện chí có yêu cầu cọc đè.                               | Thông báo đỏ:*"Căn của bạn đang bị yêu cầu cọc đè. Bạn có 30 phút để nâng cấp cọc."* |
+| **Đề xuất Hoa hồng** | Tổng tỷ lệ phân bổ chia sẻ không vượt quá trần chính sách. | *"Tổng tỷ lệ phân chia hoa hồng vượt quá mức quy định cho phép."*                              |
 
 ---
 
@@ -231,20 +242,21 @@ Hệ thống cung cấp thanh điều khiển lọc động đa cấp độ giú
 
 ### 4.1. Bảng tổng hợp các API sử dụng
 
-| STT | Method | Endpoint URI | Mục đích nghiệp vụ |
-| :---: | :---: | :--- | :--- |
-| 1 | `GET` | `/api/v1/sales/bookings/my-list` | Lấy danh sách booking cá nhân của Sales kèm trạng thái. |
-| 2 | `POST` | `/api/v1/sales/bookings/{id}/convert-deposit` | Xác nhận chuyển từ Booking sang Cọc khi khớp căn. |
-| 3 | `POST` | `/api/v1/sales/bookings/{id}/request-refund` | Gửi yêu cầu hoàn tiền booking khi không mua. |
-| 4 | `POST` | `/api/v1/sales/bookings/{id}/request-transfer` | Yêu cầu tra soát dồn tiền sang căn khác. |
-| 5 | `POST` | `/api/v1/sales/inventory/units/{unitId}/lock` | Thực hiện Lock Cọc (30p) hoặc Lock Cọc Thiện Chí (24h). |
-| 6 | `POST` | `/api/v1/sales/commissions/propose` | Khởi tạo đề xuất cơ chế hoa hồng gửi duyệt 3 cấp. |
+| STT |  Method  | Endpoint URI                                     | Mục đích nghiệp vụ                                         |
+| :-: | :------: | :----------------------------------------------- | :-------------------------------------------------------------- |
+|  1  | `GET` | `/api/v1/sales/bookings/my-list`               | Lấy danh sách booking cá nhân của Sales kèm trạng thái. |
+|  2  | `POST` | `/api/v1/sales/bookings/{id}/convert-deposit`  | Xác nhận chuyển từ Booking sang Cọc khi khớp căn.        |
+|  3  | `POST` | `/api/v1/sales/bookings/{id}/request-refund`   | Gửi yêu cầu hoàn tiền booking khi không mua.              |
+|  4  | `POST` | `/api/v1/sales/bookings/{id}/request-transfer` | Yêu cầu tra soát dồn tiền sang căn khác.                 |
+|  5  | `POST` | `/api/v1/sales/inventory/units/{unitId}/lock`  | Thực hiện Lock Cọc (30p) hoặc Lock Cọc Thiện Chí (24h).  |
+|  6  | `POST` | `/api/v1/sales/commissions/propose`            | Khởi tạo đề xuất cơ chế hoa hồng gửi duyệt 3 cấp.    |
 
 ---
 
 ### 4.2. Chi tiết Request Payload & Response JSON Schemas
 
 #### A. `POST /api/v1/sales/inventory/units/{unitId}/lock` (Lock căn trên Bảng hàng)
+
 * **Request Payload (JSON)**:
   ```json
   {
@@ -272,6 +284,7 @@ Hệ thống cung cấp thanh điều khiển lọc động đa cấp độ giú
   ```
 
 #### B. `POST /api/v1/sales/commissions/propose` (Đề xuất Cơ chế Hoa hồng)
+
 * **Request Payload (JSON)**:
   ```json
   {
@@ -296,4 +309,5 @@ Hệ thống cung cấp thanh điều khiển lọc động đa cấp độ giú
   ```
 
 ---
+
 *Tài liệu BA chuẩn hóa theo đúng cấu trúc 4 phần: Tổng quan -> Đặc tả chức năng & giao diện -> Quy tắc nghiệp vụ -> Đặc tả API.*

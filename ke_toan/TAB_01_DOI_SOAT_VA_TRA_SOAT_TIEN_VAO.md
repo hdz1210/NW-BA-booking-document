@@ -10,31 +10,38 @@
 ## 1. TỔNG QUAN (OVERVIEW)
 
 ### 1.1. Mục tiêu nghiệp vụ
-1. **Tiếp nhận & Xác minh Bill Chuyển tiền**:
-   - Nhân viên Kế toán tiếp nhận các giao dịch nộp tiền Booking/Cọc thiện chí từ Khách hàng thường hoặc Nhân viên đứng tên Booking Ôm.
-   - Đối chiếu bill chuyển khoản ngân hàng do Sales tải lên với biến động số dư thực tế trên Internet Banking / Sao kê tài khoản công ty.
+1. **Tiếp nhận & Xác minh Bill Chuyển tiền theo 6 Phân nhóm Dòng tiền**:
+   - Nhân viên Kế toán tiếp nhận các giao dịch nộp tiền được phân nhóm định danh rõ ràng:
+     - `🔥 Lock Cọc (30p)`: Giao dịch khách cọc trực tiếp căn độc quyền, có bộ đếm ngược 30 phút khẩn cấp.
+     - `⏳ Lock Cọc Thiện Chí (24h)`: Tiền cọc thiện chí giữ chỗ căn độc quyền 24h.
+     - `✅ Lên Cọc Chính Thức`: Giao dịch chuyển từ Booking sang Thỏa thuận đặt cọc chính thức (kèm hợp đồng cọc).
+     - `🔄 Tra Soát Dồn Căn`: Giao dịch chuyển dịch nguồn tiền cọc từ căn cũ sang căn mới.
+     - `📝 Booking Thiện Chí Mở Bán`: Tiền nộp giữ chỗ đợt mở bán của CĐT.
+     - `👥 Booking Ôm Nội Bộ`: Tiền đi tiền ôm đứng tên nhân sự.
 2. **Khớp Mã FT & Ghi nhận Số tiền Thực nhận**:
    - Đối soát mã giao dịch ngân hàng (`Mã FT`), số tiền thực nhận, ngày giờ tiền nổi vào tài khoản.
-   - Nếu tiền đã khớp $\rightarrow$ Bấm **"Xác nhận đối soát (Đã nhận đủ tiền)"** $\rightarrow$ Hệ thống cập nhật trạng thái `Đã đối soát`, tự động chuyển hồ sơ sang Phân hệ Admin để thẩm định & duyệt cấp Phiếu giữ chỗ.
-3. **Quản lý Tra soát Dòng tiền Bất thường**:
+   - Nếu tiền đã khớp $\rightarrow$ Bấm **"Xác nhận đối soát (Đã nhận đủ tiền)"** $\rightarrow$ Hệ thống cập nhật trạng thái `Đã đối soát`, tự động chuyển hồ sơ sang Phân hệ Admin để thẩm định & duyệt cấp Phiếu giữ chỗ / Hợp đồng cọc.
+3. **Quản lý Tra soát Dòng tiền Bất thường & Cảnh báo Khóa căn**:
    - Trường hợp khách chuyển thiếu tiền, sai cú pháp, hoặc tiền chưa nổi $\rightarrow$ Kế toán chọn kết quả **"Cần tra soát" / "Thiếu tiền"**, nhập nội dung yêu cầu tra soát để Sales/Khách hàng bổ sung chứng từ.
+   - Đối với luồng `Lock Cọc (30p)`: Hệ thống hiển thị Banner cảnh báo khẩn cấp màu cam kèm bộ đếm ngược thời gian còn lại (VD: *Còn 18 phút*) để Kế toán ưu tiên duyệt trước, tránh hết giờ nhả căn.
 
 ### 1.2. Sơ đồ Luồng Nghiệp vụ (Process Flow)
 
 ```mermaid
 flowchart TD
-    A["Sales/Khách tạo Booking & Upload Bill Chuyển Tiền"] --> B["Hồ sơ xuất hiện tại Tab 1 Kế toán (Chờ đối soát)"]
-    B --> C["Kế toán kiểm tra Biến động số dư & Bill đính kèm"]
+    A["Sales/Khách tạo Booking / Lock Căn (30p / 24h / Lên Cọc)"] --> B["Hồ sơ xuất hiện tại Tab 1 Kế toán (Chờ đối soát)"]
+    B --> C["Kế toán lọc theo Phân nhóm Luồng (Lock 30p, Lock 24h, Lên Cọc, Dồn Căn, Booking)"]
+    C --> D["Kiểm tra Biến động số dư, Mã FT & Banner Căn hộ Khóa"]
     
-    C --> D{"Kiểm tra dòng tiền"}
+    D --> E{"Kiểm tra dòng tiền"}
     
-    D -- "Tiền vào đủ + Đúng cú pháp" --> E["Kế toán chọn 'Đã nhận đủ tiền' & Nhập Mã FT"]
-    E --> F["Bấm 'XÁC NHẬN ĐỐI SOÁT'"]
-    F --> G["Trạng thái: 'ĐÃ ĐỐI SOÁT' -> Chuyển sang Tab 1 Admin Duyệt"]
-    F --> H["Ghi nhận vào Lịch sử giao dịch (Tab 4 KT)"]
+    E -- "Tiền vào đủ + Đúng cú pháp" --> F["Kế toán chọn 'Đã nhận đủ tiền' & Nhập Mã FT"]
+    F --> G["Bấm 'XÁC NHẬN ĐỐI SOÁT'"]
+    G --> H["Trạng thái: 'ĐÃ ĐỐI SOÁT' -> Chuyển sang Tab 1/Tab 3 Admin Duyệt"]
+    G --> I["Ghi nhận vào Lịch sử giao dịch (Tab 4 KT)"]
     
-    D -- "Thiếu tiền / Sai cú pháp / Chưa nổi tiền" --> I["Kế toán chọn 'Cần tra soát' & Nhập nội dung"]
-    I --> J["Trạng thái: 'CẦN TRA SOÁT' -> Báo động cho Sales xử lý"]
+    E -- "Thiếu tiền / Sai cú pháp / Chưa nổi tiền" --> J["Kế toán chọn 'Cần tra soát' & Nhập nội dung"]
+    J --> K["Trạng thái: 'CẦN TRA SOÁT' -> Báo động cho Sales xử lý"]
 ```
 
 ---
@@ -46,27 +53,42 @@ flowchart TD
 ![Đối Soát & Tra Soát Tiền Vào](../images/ke_toan/kt_tab1_doi_soat_tra_soat.png)
 
 ### 2.2. Thành phần Giao diện & Tính năng Chi tiết
-1. **Bộ lọc trạng thái (Filter Tabs)**:
-   - `Tất cả`: Hiển thị toàn bộ danh sách booking.
-   - `Chờ đối soát`: Lọc các booking mới nộp tiền cần kế toán kiểm tra.
-   - `Cần tra soát`: Lọc các booking có vấn đề về dòng tiền, sai lệch bill.
-2. **Bảng danh sách Booking (Reconciliation Table)**:
-   - Hiển thị: Mã Booking (`CB-xxxx`), Khách hàng, Dự án/Phân khu/Căn, Số tiền cọc, Thông tin Sales phụ trách, Trạng thái chứng từ (Bill chuyển khoản, Giấy ký giữ chỗ).
-   - Cho phép bấm nút "Xem bill" hoặc "Xem giấy ký" để mở Modal xem trước chứng từ PDF/Ảnh.
-3. **Cột Form Xác minh Tiền vào (Right Sidebar / Detail Panel)**:
+1. **Bộ lọc trạng thái & Phân nhóm Luồng Dòng tiền (Filter Tabs)**:
+   - **Bộ lọc trạng thái**: `Tất cả`, `Chờ duyệt`, `Tra soát`.
+   - **Thanh phân nhóm luồng giao dịch**:
+     - `Tất cả luồng`: Toàn bộ các khoản tiền vào.
+     - `🔥 Lock 30p`: Lọc giao dịch cọc trực tiếp căn độc quyền (có bộ đếm 30p khẩn cấp).
+     - `⏳ Lock 24h`: Lọc giao dịch cọc thiện chí giữ căn 24 giờ.
+     - `✅ Lên Cọc`: Lọc giao dịch lên cọc chính thức có kèm Thỏa thuận đặt cọc.
+     - `🔄 Dồn Căn`: Lọc giao dịch tra soát chuyển đổi căn hộ.
+     - `📝 Booking Mở Bán`: Lọc tiền giữ chỗ mở bán thông thường.
+2. **Bảng / Thẻ danh sách Hàng đợi (Queue List)**:
+   - Hiển thị: Stream Badge (`🔥 Lock Cọc (30p) · RP-12.08 (18p)`, `⏳ Lock Thiện Chí (24h) · RP-18.05`, `✅ Lên Cọc Chính Thức · C2-18.06`), Mã Booking (`CB-xxxx`), Khách hàng, Dự án/Phân khu/Căn, Số tiền vào (định dạng `font-mono tabular-nums`).
+3. **Banner Cảnh Báo & Trọng Tâm Khóa Căn (Locked Unit Focus Banner)**:
+   - Đặt trên cùng của panel chi tiết:
+     - **Lock Cọc 30p**: Banner màu cam nổi bật `🔥 GIAO DỊCH LOCK CỌC TRỰC TIẾP (30 PHÚT) — CĂN [MÃ CĂN] (CÒN X PHÚT)`.
+     - **Lock Thiện chí 24h**: Banner màu hổ phách `⏳ GIAO DỊCH LOCK CỌC THIỆN CHÍ (24 GIỜ) — CĂN [MÃ CĂN]`.
+     - **Lên Cọc chính thức**: Banner màu xanh lá `✅ GIAO DỊCH LÊN CỌC CHÍNH THỨC — CĂN [MÃ CĂN]`.
+     - **Dồn đổi căn**: Banner màu xanh dương `🔄 TRA SOÁT DỒN TIỀN CỌC: CĂN CŨ ➔ CĂN MỚI`.
+4. **Cột Form Xác minh Tiền vào (Right Sidebar / Detail Panel)**:
    - **Kết quả xác minh**: Dropdown chọn `Đã nhận đủ tiền`, `Thiếu tiền`, `Sai thông tin`, `Chuyển sang cần tra soát`, `Khác`.
    - **Số tiền thực nhận (VNĐ)**: Mặc định theo số tiền cọc, có thể điều chỉnh nếu khách nộp thiếu/thừa.
    - **Thời gian nhận**: Ngày giờ tiền nổi vào tài khoản công ty.
    - **Mã FT**: Mã giao dịch ngân hàng do Kế toán nhập hoặc đối chiếu từ bill.
    - **Checkbox**: `Tích đã khớp nội dung chuyển khoản theo cú pháp`.
    - **Nội dung tra soát / Ghi chú**: Nhập lý do nếu trạng thái là Cần tra soát.
-   - **Nút hành động**: `Xác nhận đối soát` (màu xanh) / `Lưu tra soát` (màu cam).
+   - **Nút hành động**: `Xác nhận đã nhận tiền (Đã đối soát)` / `Cần tra soát`.
 
 ### 2.3. Danh mục trường dữ liệu (Data Dictionary)
 
 | Tên trường | Kiểu dữ liệu | Bắt buộc | Mô tả & Quy tắc |
 | :--- | :---: | :---: | :--- |
 | `id` | String | Có | Mã phiếu Booking (VD: `CB-2026-0001`). |
+| `streamType` | Enum | Có | Phân loại luồng: `LOCK_30M`, `LOCK_24H`, `OFFICIAL_DEPOSIT`, `EXCHANGE_TRANSFER`, `BOOKING_GENERAL`, `BULK_HOLD`. |
+| `lockedUnitCode` | String | Tùy luồng | Mã căn hộ đang bị khóa cọc (VD: `RP-12.08`, `C2-18.06`). |
+| `lockRemainingMinutes` | Number | Tùy luồng | Số phút còn lại trong thời hạn lock 30p khẩn cấp. |
+| `sourceUnitCode` | String | Tùy luồng | Mã căn cũ (áp dụng khi tra soát dồn căn). |
+| `targetUnitCode` | String | Tùy luồng | Mã căn mới dồn sang. |
 | `customerName` | String | Có | Họ tên khách hàng hoặc nhân viên đứng tên booking ôm. |
 | `depositAmount` | Currency | Có | Số tiền cọc quy định (VD: `100,000,000 VNĐ`). |
 | `actualReceivedAmount` | Currency | Có | Số tiền thực nhận vào tài khoản ngân hàng. |
