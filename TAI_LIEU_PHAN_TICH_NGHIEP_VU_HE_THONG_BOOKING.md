@@ -213,8 +213,8 @@ sequenceDiagram
 
 ---
 
-### 💸 LUỒNG 6: Quy Trình Hoàn Tiền Booking / Rút Cọc (Refund Workflow)
-*Áp dụng khi không ráp được căn, khách rút cọc thiện chí đúng hạn hoặc nhường quyền xung đột.*
+### 💸 LUỒNG 6: Hành Trình Hủy Lock Căn & Xuất Hoàn Cọc (Cancel Lock & Refund Journey)
+*Đặc tả toàn diện 5 bước liên thông: Sales khởi tạo $\rightarrow$ Admin thẩm định & chỉ định Sếp $\rightarrow$ Sếp phê duyệt $\rightarrow$ Kế toán chi & cập nhật ETA $\rightarrow$ Sales theo dõi hành trình thời gian thực.*
 
 ```mermaid
 sequenceDiagram
@@ -222,28 +222,50 @@ sequenceDiagram
     actor KH as Khách hàng
     actor Sales as Chuyên viên Sales
     participant App as Hệ thống NewWay Booking
-    actor Admin as Admin (Tab 4)
+    actor Admin as Admin Vận hành
+    actor Sep as Sếp / Ban Lãnh Đạo (Approver)
     actor KT as Kế toán (Tab 3)
     actor Bank as Ngân hàng
 
-    KH->>Sales: Yêu cầu hoàn lại tiền booking / cọc thiện chí
-    Sales->>App: Tab 2 (Sales): Chọn hồ sơ -> Bấm "Yêu Cầu Hoàn Booking"
-    Sales->>App: Nhập thông tin tài khoản nhận hoàn (STK, Ngân hàng, Tên chủ tài khoản) + Lý do hoàn
-    App->>App: Tự động xuất "Phiếu Đề Nghị Hoàn Booking (PDF)"
-    KH->>Sales: Ký Phiếu Đề Nghị Hoàn Tiền (ký giấy hoặc ký điện tử)
-    Sales->>App: Tải file scan Phiếu Hoàn đã ký -> Bấm "Gửi yêu cầu hoàn"
+    KH->>Sales: Yêu cầu hủy lock căn & hoàn cọc
+    Sales->>App: Màn hình Sales: Bấm "Đề Nghị Hoàn Cọc / Hủy Lock"
+    Sales->>App: Nhập Lý do + Thông tin Ngân hàng (STK, Bank, Chủ TK, Chi nhánh)
+    App->>App: Tự động xuất "Phiếu Đề Nghị Hủy Lock & Hoàn Cọc (PDF)"
+    KH->>Sales: Ký xác nhận Phiếu hoàn cọc
+    Sales->>App: Tải file ký -> Bấm "Gửi yêu cầu hoàn cọc"
+    App-->>App: Trạng thái: "Chờ Admin thẩm định" (Timeline Bước 1)
 
-    Admin->>App: Tab 4 (Admin): Kiểm tra điều kiện hoàn tiền & thời hạn hợp lệ
-    Admin->>App: Bấm "Phê duyệt lệnh hoàn"
-    App-->>KT: Chuyển hồ sơ sang Tab 3 Kế toán (Trạng thái: "ĐÃ DUYỆT HOÀN")
+    Admin->>App: Mở hồ sơ yêu cầu hủy lock & hoàn cọc
+    Admin->>App: Kiểm tra tính hợp lệ -> Bấm "Duyệt & Chuyển Trình Phê Duyệt"
+    Admin->>App: Chọn dropdown "Chỉ định Người xác nhận" (Chọn Sếp phụ trách)
+    App-->>App: Trạng thái: "Chờ Sếp [Tên Sếp] phê duyệt" (Timeline Bước 2)
+    App-->>Sep: Gửi thông báo kèm hồ sơ cần phê duyệt hoàn cọc
 
-    KT->>App: Tab 3 (KT): Mở chi tiết lệnh chi hoàn tiền
+    Sep->>App: Mở chi tiết hồ sơ (xem lý do, căn hộ, số tiền, ý kiến Admin)
+    Sep->>App: Bấm "Xác Nhận Hoàn Cọc (Phê Duyệt)"
+    App->>App: TỰ ĐỘNG NHẢ LOCK CĂN -> Chuyển về "Trống (Sẵn sàng)" trên Bảng hàng
+    App-->>KT: Chuyển lệnh chi sang Tab 3 Kế toán (Trạng thái: "Đã duyệt hoàn")
+
+    KT->>App: Tab 3 KT: Tiếp nhận lệnh chi hoàn tiền
+    KT->>App: Cập nhật "Ngày & Giờ dự kiến tiền về tài khoản khách (ETA Date/Time)"
+    App-->>Sales: Cập nhật Status & Timeline: "Đã duyệt hoàn - Dự kiến tiền về: [Thời gian]"
+
     KT->>Bank: Thực hiện lệnh chuyển tiền hoàn trả về STK khách hàng
-    Bank-->>KT: Trả về UNC chuyển khoản hoàn tiền thành công
-    KT->>App: Tải file UNC hoàn tiền + Nhập Mã FT hoàn tiền -> Bấm "Xác nhận đã hoàn booking"
-    App->>App: Cập nhật trạng thái Booking: "ĐÃ HOÀN TIỀN" (Closed)
-    App-->>KH: Gửi thông báo SMS/Email xác nhận đã hoàn trả tiền thành công
+    Bank-->>KT: Báo chuyển tiền thành công kèm Ủy nhiệm chi (Mã FT)
+    KT->>App: Tải UNC + Nhập Mã FT hoàn cọc -> Bấm "Xác nhận đã hoàn tiền"
+    App->>App: Cập nhật trạng thái cuối: "ĐÃ HOÀN TIỀN THÀNH CÔNG" (Closed)
+    App-->>Sales: Thông báo: "Tiền hoàn đã về tài khoản khách hàng"
+    App-->>KH: Gửi SMS/Email biên lai hoàn tiền
 ```
+
+#### 📌 Bảng Ma Trận Chuyển Đổi Trạng Thái & Timeline Tracking Bên Phân Hệ Sales:
+| Bước | Thao tác / Tác nhân xử lý | Trạng thái hiển thị trên Dashboard của Sales | Tình trạng căn hộ trên Bảng hàng |
+| :---: | :--- | :--- | :--- |
+| **1** | Sales nộp form hoàn cọc & tài khoản ngân hàng | `🟡 Chờ Admin thẩm định` | `Lock Cọc / Cọc Thiện Chí` |
+| **2** | Admin duyệt & Chỉ định Sếp phê duyệt | `🟠 Chờ Sếp [Tên Sếp] phê duyệt` | `Lock Cọc / Cọc Thiện Chí` |
+| **3** | Sếp bấm Xác nhận hoàn cọc | `🔵 Đã phê duyệt - Chờ Kế toán chi tiền` | `🟢 Trống (Đã nhả lock tự do)` |
+| **4** | Kế toán tiếp nhận & cập nhật lịch dự kiến | `🟣 Chờ chi tiền (Dự kiến tiền về: dd/mm/yyyy HH:mm)` | `🟢 Trống (Đã nhả lock tự do)` |
+| **5** | Kế toán nộp UNC & khớp Mã FT hoàn | `🟢 ĐÃ HOÀN TIỀN THÀNH CÔNG` *(Có Mã FT & UNC)* | `🟢 Trống (Đã nhả lock tự do)` |
 
 ---
 

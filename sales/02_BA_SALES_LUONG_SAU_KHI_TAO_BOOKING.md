@@ -99,42 +99,51 @@ flowchart TD
 
 *Hình 2.1c: Modal Bổ Sung Hồ Sơ & Chứng Từ — Sales chọn loại chứng từ cần bổ sung (CCCD mặt sau, UNC, Giấy ủy quyền...), upload tệp đính kèm, ghi chú giải trình cho Admin.*
 
-#### D. Danh mục trạng thái Booking trên Dashboard
+#### D. Danh mục trạng thái Booking & Timeline Hành Trình Hoàn Cọc trên Dashboard
 
 | Trạng thái                         |   Mã hiển thị   | Ý nghĩa nghiệp vụ                                              | Hành động khả dụng của Sales                          |
 | :----------------------------------- | :-----------------: | :----------------------------------------------------------------- | :---------------------------------------------------------- |
 | **Chờ Kế toán check tiền** | `PENDING_PAYMENT` | Vừa gửi, đang đợi kế toán đối soát biến động số dư. | Xem chi tiết, Nhắc Kế toán.                             |
 | **Chờ Admin duyệt**          |  `PENDING_ADMIN`  | Kế toán đã khớp mã FT, chờ Admin duyệt hồ sơ.            | Xem chi tiết, Bổ sung ảnh nếu yêu cầu.                |
 | **Booking hợp lệ**           |  `BOOKING_VALID`  | Hồ sơ và tiền đã duyệt, sẵn sàng ráp căn.               | In Phiếu cọc thiện chí cho khách ký.                  |
-| **Đã khớp căn**            |     `MATCHED`     | CĐT đã ráp trúng mã căn cụ thể cho khách.                | Chọn:*Lên Cọc* / *Hoàn tiền* / *Dồn tiền*.     |
-| **Không khớp căn**          |    `UNMATCHED`    | Không trúng căn trong đợt mở bán.                           | Chọn:*Yêu cầu Hoàn tiền* / *Dồn sang căn khác*. |
+| **Đã khớp căn**            |     `MATCHED`     | CĐT đã ráp trúng mã căn cụ thể cho khách.                | Chọn: *Lên Cọc* / *Hoàn tiền* / *Dồn tiền*.     |
+| **Không khớp căn**          |    `UNMATCHED`    | Không trúng căn trong đợt mở bán.                           | Chọn: *Yêu cầu Hoàn tiền* / *Dồn sang căn khác*. |
 | **Đã cọc hợp lệ**         | `DEPOSITED_VALID` | Khách đã ký cọc mua căn thành công.                        | Bấm Tạo đề xuất Cơ chế hoa hồng.                    |
-| **Đã hoàn tiền**           |    `REFUNDED`    | Kế toán đã chuyển tiền trả khách hoàn tất.               | Xem UNC hoàn tiền, Đóng hồ sơ.                        |
+| **Chờ Admin thẩm định hoàn** | `REFUND_PENDING_ADMIN` | Sales vừa nộp đơn hủy lock/hoàn cọc, chờ Admin kiểm tra. | Xem chi tiết đơn hoàn, Chờ xử lý. |
+| **Chờ Sếp phê duyệt hoàn** | `REFUND_PENDING_BOSS` | Admin đã thẩm định, chờ Sếp chỉ định bấm xác nhận hoàn cọc. | Theo dõi tiến độ duyệt của Sếp. |
+| **Chờ chi (Có ETA tiền về)** | `REFUND_PROCESSING` | Sếp đã duyệt hoàn, Kế toán đang xếp lịch chi (Có ngày ETA). | Thông báo ngày tiền về cho khách hàng. |
+| **Đã hoàn tiền thành công** |    `REFUNDED`    | Kế toán đã chuyển tiền trả khách hoàn tất (kèm Mã FT & UNC). | Xem UNC hoàn tiền, Đóng hồ sơ. |
 
 ---
 
-### 2.2. XỬ LÝ KẾT QUẢ MỞ BÁN / RÁP CĂN TỪ CĐT
+### 2.2. XỬ LÝ KẾT QUẢ MỞ BÁN & HÀNH TRÌNH HỦY LOCK HOÀN CỌC
 
-#### A. Kịch bản Khớp căn 
+#### A. Hành trình Hủy Lock Căn & Đề Nghị Hoàn Cọc (Cancel Lock & Refund Journey)
 
-1. **Chốt Mua (Lên Cọc)**:
-   - Sales bấm nút **"Xác nhận Chuyển Cọc"** $\rightarrow$ Admin in Phiếu đặt cọc $\rightarrow$ Sales đưa khách ký $\rightarrow$ Admin duyệt $\rightarrow$ Chuyển sang **`Giao dịch hợp lệ`**.
-2. **Không Mua (Rút cọc)**:
-   - Sales bấm nút **"Yêu cầu Hoàn Booking"** $\rightarrow$ Hệ thống tự sinh Phiếu hoàn tiền (sẵn STK khách) $\rightarrow$ Khách ký $\rightarrow$ Kế toán chuyển khoản hoàn tiền.
-3. **Đổi căn khác cùng dự án**:
-   - Sales bấm **"Tra soát / Dồn tiền sang căn khác"** $\rightarrow$ Chọn mã căn mục tiêu $\rightarrow$ Kế toán đối soát chuyển mã FT.
+1. **Sales Khởi Tạo Yêu Cầu Hoàn Cọc**:
+   - Trên màn hình Quản lý Booking hoặc Bảng hàng Matrix, Sales bấm **"Đề Nghị Hoàn Cọc / Hủy Lock"**.
+   - Mở Modal Hoàn Cọc: Sales nhập **Lý do hoàn cọc** và **Thông tin tài khoản ngân hàng của khách** (Tên ngân hàng, Số tài khoản, Tên chủ tài khoản in hoa, Chi nhánh).
+   - Hệ thống xuất **Phiếu Đề Nghị Hủy Lock & Hoàn Cọc (PDF)** $\rightarrow$ Khách ký $\rightarrow$ Sales nộp lên hệ thống.
+   - Trạng thái hồ sơ: `Chờ Admin thẩm định`.
+2. **Admin Thẩm Định & Chỉ Định Sếp**:
+   - Admin kiểm tra hồ sơ $\rightarrow$ Bấm **"Duyệt & Trình Sếp"** $\rightarrow$ Chọn Sếp chỉ định (GĐ Khối / P.TGĐ).
+   - Trạng thái hồ sơ: `Chờ Sếp [Tên Sếp] phê duyệt`.
+3. **Sếp Phê Duyệt & Tự Động Nhả Lock Căn**:
+   - Sếp xem chi tiết đơn và bấm **"Xác Nhận Hoàn Cọc"**.
+   - Căn hộ tự động **Nhả Lock $\rightarrow$ Chuyển về "Trống (Sẵn sàng)"** trên Bảng hàng cho các Sales khác bán.
+   - Trạng thái hồ sơ: `Đã duyệt hoàn - Chờ Kế toán chi tiền`.
+4. **Kế toán Cập Nhật ETA & Thực Hiện Lệnh Chi**:
+   - Kế toán tiếp nhận lệnh chi, cập nhật **Ngày & Giờ dự kiến tiền về tài khoản khách (ETA Date/Time)** (VD: *Dự kiến 15:00 ngày 29/08/2026*).
+   - Trạng thái hồ sơ trên máy Sales: `Chờ chi tiền (Dự kiến tiền về: 15:00 29/08/2026)`.
+   - Kế toán chuyển khoản thành công, nộp UNC và điền Mã FT $\rightarrow$ Trạng thái chuyển thành `ĐÃ HOÀN TIỀN THÀNH CÔNG`.
+5. **Sales Theo Dõi Toàn Diện (Timeline Tracking)**:
+   - Sales luôn nắm rõ: Căn có được duyệt hoàn cọc hay không, ai đang giữ duyệt và chính xác khi nào tiền sẽ về tài khoản khách để chủ động phản hồi khách hàng.
 
-##### Mockup: Modal Xác nhận Lên Cọc (Matched → Chốt Mua)
-
-![Mockup: Xác nhận chuyển cọc](assets/post_tab2_convert_deposit_modal.png)
-
-*Hình 2.2a: Sales xác nhận chuyển Booking sang trạng thái Cọc — Nhập mã căn đã ráp, giá bán chính thức, xác nhận lịch ký hợp đồng.*
-
-##### Mockup: Modal Yêu Cầu Hoàn Tiền (Matched → Rút cọc)
+##### Mockup: Modal Yêu Cầu Hủy Lock & Hoàn Tiền (Nhập Lý do & STK Khách)
 
 ![Mockup: Yêu cầu hoàn tiền](assets/post_tab2_refund_modal.png)
 
-*Hình 2.2b: Sales yêu cầu hoàn tiền cọc cho khách — Hiển thị STK hoàn tiền đã khai trước, chọn lý do và ghi chú.*
+*Hình 2.2b: Sales nhập thông tin STK ngân hàng thụ hưởng của khách hàng, lý do hoàn cọc và nộp hồ sơ xin duyệt hoàn 2 cấp (Admin + Sếp).*
 
 #### B. Kịch bản Không khớp căn (Unmatched)
 

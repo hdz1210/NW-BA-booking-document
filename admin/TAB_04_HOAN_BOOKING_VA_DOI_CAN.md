@@ -10,18 +10,21 @@
 ## 1. TỔNG QUAN (OVERVIEW)
 
 ### 1.1. Mục tiêu nghiệp vụ
-1. **Tiếp nhận Danh sách Không Khớp Căn**:
-   - Tiếp nhận toàn bộ các Booking có trạng thái `Không khớp / Hết căn` sau khi kết thúc đợt mở bán hoặc khi khách hàng từ chối căn được gán.
+1. **Tiếp nhận Danh sách Không Khớp Căn & Yêu Cầu Hủy Lock Căn Từ Sales**:
+   - Tiếp nhận các Booking có trạng thái `Không khớp / Hết căn` sau khi kết thúc đợt mở bán hoặc khi Sales nộp đơn `Đề nghị Hủy Lock & Hoàn Cọc` từ bảng hàng độc quyền.
 2. **Xử lý Luồng 1: Đổi Căn Khác (Unit Exchange)**:
    - Khách đồng ý chọn một căn hộ khác còn trống trong giỏ hàng $\rightarrow$ Admin chọn mã căn mới, nhập thông tin chênh lệch tiền cọc/tiền bán và ghi nhận **"Đã đổi căn"**.
-3. **Xử lý Luồng 2: Hoàn Cọc Thiện Chí (Refund Approval)**:
-   - Khách không muốn mua căn khác và yêu cầu rút tiền cọc thiện chí $\rightarrow$ Admin nhập/kiểm tra thông tin tài khoản nhận tiền của khách (Ngân hàng, STK, Chủ TK, Lý do hoàn) $\rightarrow$ Bấm **"Phê duyệt đề xuất hoàn tiền"** $\rightarrow$ Hồ sơ tự động chuyển sang **Tab 3 Kế toán** để thực hiện chi tiền.
+3. **Xử lý Luồng 2: Thẩm Định Hoàn Cọc & Chỉ Định Sếp Phê Duyệt (Boss Approver Assignment)**:
+   - Admin kiểm tra thông tin tài khoản ngân hàng của khách (STK, Bank, Chủ TK, Lý do hoàn).
+   - Admin chọn **"Chỉ định Người xác nhận (Sếp / Ban Lãnh Đạo)"** từ danh sách (VD: *Giám đốc Khối Lê Minh Khoa, Phó Tổng Giám Đốc Nguyễn Văn Hải*).
+   - Admin bấm **"Duyệt & Trình Sếp Phê Duyệt"** $\rightarrow$ Hệ thống chuyển trạng thái sang `Chờ Sếp [Tên Sếp] phê duyệt`.
+   - Khi Sếp bấm Xác nhận $\rightarrow$ **Căn hộ tự động được Nhả Lock về "Trống (Sẵn sàng)"** và hồ sơ chuyển sang **Tab 3 Kế toán** để chi tiền.
 
 ### 1.2. Sơ đồ Luồng Nghiệp vụ (Process Flow)
 
 ```mermaid
 flowchart TD
-    A["Booking không khớp căn từ Tab 2 Admin"] --> B["Hồ sơ xuất hiện tại Tab 4 Admin (Chờ xử lý)"]
+    A["Sales nộp Đề nghị Hủy Lock & Hoàn Cọc"] --> B["Hồ sơ xuất hiện tại Tab 4 Admin (Chờ thẩm định)"]
     B --> C{"Chọn phương án xử lý"}
     
     %% Luồng Đổi Căn
@@ -31,9 +34,10 @@ flowchart TD
     
     %% Luồng Hoàn Tiền
     C -- "PHƯƠNG ÁN 2: HOÀN TIỀN" --> G["Chọn chế độ 'Hoàn Tiền Booking'"]
-    G --> H["Kiểm tra/Nhập STK, Ngân hàng, Chủ TK, Lý do hoàn"]
-    H --> I["Bấm 'PHÊ DUYỆT ĐỀ XUẤT HOÀN TIỀN'"]
-    I --> J["Trạng thái: 'ĐÃ DUYỆT HOÀN' -> Chuyển sang Tab 3 KẾ TOÁN chi tiền"]
+    G --> H["Admin kiểm tra STK, Lý do & Chọn Dropdown 'Chỉ định Sếp phê duyệt'"]
+    H --> I["Bấm 'DUYỆT & TRÌNH SẾP PHÊ DUYỆT'"]
+    I --> J["Sếp bấm 'Xác Nhận Hoàn Cọc' -> Tự động Nhả Lock Căn về TRỐNG"]
+    J --> K["Hồ sơ chuyển sang Tab 3 KẾ TOÁN (Kế toán cập nhật ETA tiền về)"]
 ```
 
 ---
@@ -46,18 +50,17 @@ flowchart TD
 
 ### 2.2. Thành phần Giao diện & Tính năng Chi tiết
 1. **Bảng Danh Sách Hồ Sơ Không Khớp Căn (Left Table)**:
-   - Hiển thị: Mã Booking, Khách hàng, SĐT, Dự án, Nguyện vọng ban đầu, Số tiền cọc, Lý do không khớp (VD: *"Hết căn 3PN tòa A"*), Loại yêu cầu (`Hoàn cọc` / `Đổi căn`), Trạng thái (`Chờ xử lý`, `Đã duyệt hoàn`, `Đã đổi căn`).
+   - Hiển thị: Mã Booking, Khách hàng, SĐT, Dự án, Mã căn hủy lock, Số tiền cọc, Lý do hoàn cọc, Người chỉ định duyệt (Sếp), Trạng thái (`Chờ thẩm định`, `Chờ Sếp duyệt`, `Đã duyệt hoàn`, `Đã đổi căn`).
 2. **Khung Xử Lý Yêu Cầu (Right Panel)**:
-   - **Nút chuyển đổi chế độ**:
-     - `Hoàn tiền booking` (Icon Hoàn tiền)
-     - `Đổi căn mới` (Icon Đổi căn)
+   - **Nút chuyển đổi chế độ**: `Hoàn tiền booking` (Icon Hoàn tiền) / `Đổi căn mới` (Icon Đổi căn).
    - **Giao diện khi chọn HOÀN TIỀN**:
      - Tên Ngân hàng thụ hưởng.
      - Số tài khoản nhận tiền.
      - Tên Chủ tài khoản (chữ in hoa).
      - Số tiền hoàn lại (VNĐ).
      - Lý do hoàn cọc.
-     - Nút `Phê duyệt đề xuất hoàn tiền` $\rightarrow$ Đẩy sang Tab 3 Kế toán.
+     - **Dropdown "Chỉ định Người xác nhận (Sếp / Ban Lãnh Đạo)"**: Danh sách cấp lãnh đạo (GĐ Khối, P.TGĐ, TGĐ).
+     - Nút `Duyệt & Trình Sếp phê duyệt` $\rightarrow$ Chuyển thông báo đến Sếp.
    - **Giao diện khi chọn ĐỔI CĂN**:
      - Dropdown chọn Mã căn mới còn trống.
      - Thông tin chi tiết căn mới (Diện tích, Tầng, Hướng).
@@ -71,18 +74,21 @@ flowchart TD
 | :--- | :---: | :---: | :--- |
 | `id` | String | Có | Mã Booking (VD: `CB-2026-0008`). |
 | `requestType` | Enum | Có | `'hoan_coc'` \| `'doi_can'`. |
+| `unitCode` | String | Có | Mã căn hộ cần hủy lock / đổi căn. |
 | `targetAccount` | String | Có khi hoàn | Số tài khoản ngân hàng nhận tiền hoàn. |
 | `refundReason` | Text | Có khi hoàn | Lý do hoàn tiền cọc thiện chí. |
+| `assignedBossApprover` | String | Có khi hoàn | Họ tên & chức vụ Sếp được chỉ định phê duyệt. |
 | `newUnitCode` | String | Có khi đổi | Mã căn mới chuyển đổi sang. |
-| `status` | Enum | Có | `'Chờ xử lý'` \| `'Đã duyệt hoàn'` \| `'Đã đổi căn'`. |
+| `status` | Enum | Có | `'Chờ thẩm định'` \| `'Chờ Sếp duyệt'` \| `'Đã duyệt hoàn'` \| `'Đã đổi căn'`. |
 
 ---
 
 ## 3. QUY TẮC NGHIỆP VỤ (BUSINESS RULES & VALIDATIONS)
 
 ### 3.1. Các quy tắc xử lý nghiệp vụ (Business Rules - BR)
-- **BR-ADM07 (Liên thông Phân hệ Kế toán)**: Ngay khi Admin bấm "Phê duyệt đề xuất hoàn tiền", hồ sơ sẽ ngay lập tức xuất hiện trên **Tab 3 Kế toán** với trạng thái `Đã duyệt hoàn` để Kế toán thực hiện lệnh chi.
-- **BR-ADM08 (Giải phóng căn cũ)**: Khi thực hiện Đổi căn, hệ thống tự động gán mã căn mới cho khách và đưa căn cũ về trạng thái giỏ hàng ban đầu.
+- **BR-ADM07 (Phân quyền duyệt 2 cấp)**: Mọi yêu cầu hủy lock và hoàn cọc bắt buộc phải qua Admin thẩm định hồ sơ và được Sếp chỉ định (`assignedBossApprover`) bấm xác nhận mới được chuyển sang Kế toán.
+- **BR-ADM08 (Tự động giải phóng căn hộ)**: Ngay thời điểm Sếp bấm xác nhận hoàn cọc, hệ thống tự động đưa căn hộ về trạng thái `Trống (Sẵn sàng)` trên Bảng hàng để các Sales khác có thể bán ngay.
+- **BR-ADM09 (Liên thông Phân hệ Kế toán)**: Sau khi Sếp phê duyệt, hồ sơ xuất hiện ngay trên **Tab 3 Kế toán** với trạng thái `Đã duyệt hoàn` để Kế toán cập nhật ngày dự kiến tiền về (ETA) và chi trả.
 
 ---
 

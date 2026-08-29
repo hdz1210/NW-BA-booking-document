@@ -10,25 +10,28 @@
 ## 1. TỔNG QUAN (OVERVIEW)
 
 ### 1.1. Mục tiêu nghiệp vụ
-1. **Tiếp nhận Yêu cầu Hoàn Tiền Đã Phê Duyệt**:
-   - Tiếp nhận các yêu cầu hoàn cọc thiện chí từ Khách hàng không khớp được căn ưng ý tại lễ mở bán hoặc Khách hàng xin rút cọc đúng quy định (đã được Admin phê duyệt tại Tab 4 Admin).
-2. **Chi Trả Hoàn Tiền Cho Khách Hàng**:
-   - Kế toán kiểm tra số tiền hoàn, tài khoản thụ hưởng (Ngân hàng, Số tài khoản, Tên chủ tài khoản) $\rightarrow$ Thực hiện lệnh chuyển khoản hoàn tiền.
-   - Nhập `Mã FT hoàn tiền`, ngày giờ hoàn và upload file Ủy Nhiệm Chi hoàn tiền.
-3. **Cập nhật Trạng thái & Ghi nhận Sổ cái**:
-   - Bấm **"Xác nhận đã hoàn tiền"** $\rightarrow$ Hệ thống đổi trạng thái sang `Đã hoàn booking`, ghi nhận bản ghi chi hoàn cọc vào **Tab 4 Lịch sử giao dịch**.
+1. **Tiếp nhận Yêu cầu Hoàn Tiền Đã Qua 2 Cấp Duyệt (Admin & Sếp/Ban Lãnh Đạo)**:
+   - Tiếp nhận các yêu cầu hủy lock căn và hoàn cọc từ Sales sau khi đã được **Admin thẩm định** và **Sếp (Ban Lãnh Đạo / Giám Đốc Khối) bấm xác nhận phê duyệt**.
+   - Căn hộ trên giỏ hàng đã được hệ thống tự động nhả lock về trạng thái `Trống (Sẵn sàng)`.
+2. **Cập nhật Ngày Dự Kiến Tiền Về (ETA Payment Date)**:
+   - Kế toán tiếp nhận lệnh chi, cập nhật thời gian dự kiến tiền nổi vào STK của khách hàng (VD: *15:00 ngày 29/08/2026*).
+   - Hệ thống tự động đẩy thông báo và timeline thời gian thực sang màn hình Sales để Sales chủ động giải đáp khách.
+3. **Chi Trả Hoàn Tiền & Nhập Mã FT Đối Soát**:
+   - Kế toán thực hiện lệnh chuyển khoản qua Internet Banking theo đúng thông tin thụ hưởng (Ngân hàng, STK, Tên chủ TK).
+   - Tải file scan UNC và nhập `Mã FT hoàn tiền` $\rightarrow$ Bấm **"Xác nhận đã hoàn tiền"** $\rightarrow$ Hệ thống cập nhật trạng thái `ĐÃ HOÀN TIỀN THÀNH CÔNG` (Closed).
 
 ### 1.2. Sơ đồ Luồng Nghiệp vụ (Process Flow)
 
 ```mermaid
 flowchart TD
-    A["Admin duyệt Đề xuất Hoàn Cọc (Tab 4 Admin)"] --> B["Hồ sơ chuyển sang Tab 3 Kế toán (Trạng thái: Đã duyệt hoàn)"]
-    B --> C["Kế toán chọn hồ sơ & kiểm tra thông tin STK thụ hưởng"]
-    C --> D["Kế toán thực hiện Chuyển khoản hoàn tiền từ TK Công ty về TK Khách"]
-    D --> E["Kế toán nhập Mã FT hoàn tiền & Upload file UNC"]
-    E --> F["Bấm 'XÁC NHẬN ĐÃ HOÀN TIỀN'"]
-    F --> G["Trạng thái cập nhật: 'ĐÃ HOÀN BOOKING'"]
-    F --> H["Tự động tạo Log giao dịch hoàn tiền tại Tab 4 Lịch sử"]
+    A["Sales nộp đơn Hủy Lock & Hoàn Cọc (kèm STK KH)"] --> B["Admin kiểm tra & Chỉ định Sếp phê duyệt"]
+    B --> C["Sếp bấm Xác Nhận Hoàn Cọc -> Nhả Lock căn về TRỐNG"]
+    C --> D["Hồ sơ chuyển sang Tab 3 Kế toán (Trạng thái: Đã duyệt hoàn)"]
+    D --> E["Kế toán cập nhật 'Ngày dự kiến tiền về' (ETA) -> Báo sang Sales"]
+    E --> F["Kế toán thực hiện Chuyển khoản từ TK Công ty về TK Khách"]
+    F --> G["Kế toán nhập Mã FT hoàn tiền & Upload file UNC"]
+    G --> H["Bấm 'XÁC NHẬN ĐÃ HOÀN TIỀN' -> Trạng thái: ĐÃ HOÀN TIỀN THÀNH CÔNG"]
+    G --> I["Tự động tạo Log giao dịch hoàn tiền tại Tab 4 Lịch sử"]
 ```
 
 ---
@@ -41,28 +44,31 @@ flowchart TD
 
 ### 2.2. Thành phần Giao diện & Tính năng Chi tiết
 1. **Danh sách Hồ sơ Yêu cầu Hoàn Cọc (Left Table)**:
-   - Hiển thị: Mã Booking (`CB-xxxx`), Khách hàng, Dự án, Số tiền hoàn (VNĐ), Lý do hoàn tiền (VD: *"Không khớp được căn 3PN tòa A"*), Người duyệt (Admin), Trạng thái (`Đã duyệt hoàn` / `Đã hoàn booking`).
-2. **Cột Form Xử Lý Lệnh Chi Hoàn Tiền (Right Detail Panel)**:
-   - **Thông tin thụ hưởng của Khách**: Ngân hàng thụ hưởng, Số tài khoản, Tên chủ tài khoản, Số tiền cọc cần hoàn.
-   - **Phiếu đề xuất hoàn đính kèm**: Bấm xem trước file Scan Đơn đề nghị hoàn tiền của khách.
+   - Hiển thị: Mã Booking (`CB-xxxx`), Khách hàng, Mã căn hủy lock, Số tiền hoàn (VNĐ), Lý do hoàn cọc, **Người xác nhận (Sếp phê duyệt)**, Trạng thái (`Chờ chi tiền` / `Đã hoàn tiền`).
+2. **Cột Form Xử Lý Lệnh Chi Hoàn Tiền & Cập Nhật ETA (Right Detail Panel)**:
+   - **Thông tin thụ hưởng của Khách**: Ngân hàng, Số tài khoản, Tên chủ tài khoản, Số tiền cọc cần hoàn.
+   - **Cấp phê duyệt**: Hiển thị rõ *"Admin: Lê Minh Khoa thẩm định"* và *"Sếp phê duyệt: Nguyễn Văn Hải (GĐ Khối) đã xác nhận"*.
+   - **Dự kiến thời gian tiền về (ETA)**: Ô chọn ngày & giờ dự kiến hoàn tất chi tiền (tự động đồng bộ sang Sales).
    - **Mã FT hoàn tiền**: Ô nhập mã giao dịch ngân hàng chuyển tiền hoàn.
-   - **Thời gian hoàn tiền**: Ngày giờ thực hiện lệnh chi.
-   - **Ghi chú đối soát**: Nhập nội dung tra soát sau hoàn (nếu có).
+   - **Thời gian hoàn tiền thực tế**: Ngày giờ thực hiện lệnh chi.
    - **Upload UNC hoàn tiền**: Khu vực đính kèm file scan UNC chuyển khoản trả khách.
-   - **Nút Xác nhận đã hoàn tiền**: Nút hành động chính để đóng hồ sơ.
+   - **Nút Xác nhận đã hoàn tiền**: Đóng hồ sơ và gửi thông báo hoàn tiền thành công.
 
 ### 2.3. Danh mục trường dữ liệu (Data Dictionary)
 
 | Tên trường | Kiểu dữ liệu | Bắt buộc | Mô tả & Quy tắc |
 | :--- | :---: | :---: | :--- |
 | `id` | String | Có | Mã phiếu Booking yêu cầu hoàn (VD: `CB-2026-0008`). |
+| `unitCode` | String | Có | Mã căn hộ hủy lock hoàn cọc (VD: `RP-18.05`, `LMR-B15.02`). |
 | `customerName` | String | Có | Họ tên khách hàng nhận tiền hoàn. |
 | `refundAmount` | Currency | Có | Số tiền cọc thực tế hoàn trả cho khách. |
 | `receivingBank` | String | Có | Tên ngân hàng thụ hưởng của khách hàng. |
 | `receivingAccount` | String | Có | Số tài khoản ngân hàng của khách. |
 | `accountHolder` | String | Có | Họ tên chủ tài khoản thụ hưởng. |
-| `refundFtCode` | String | Có | Mã giao dịch ngân hàng lệnh chi hoàn tiền. |
-| `refundTime` | DateTime | Có | Thời gian thực hiện chuyển tiền hoàn cọc. |
+| `assignedApprover` | String | Có | Họ tên Sếp / Cấp lãnh đạo đã ký duyệt hoàn cọc. |
+| `etaRefundDate` | DateTime | Có | Ngày giờ dự kiến tiền về tài khoản khách hàng. |
+| `refundFtCode` | String | Có khi hoàn | Mã giao dịch ngân hàng lệnh chi hoàn tiền. |
+| `refundTime` | DateTime | Có khi hoàn | Thời gian thực hiện chuyển tiền hoàn cọc. |
 | `uncFile` | File/URL | Không | File đính kèm UNC lệnh chi hoàn tiền. |
 
 ---
@@ -70,8 +76,9 @@ flowchart TD
 ## 3. QUY TẮC NGHIỆP VỤ (BUSINESS RULES & VALIDATIONS)
 
 ### 3.1. Các quy tắc xử lý nghiệp vụ (Business Rules - BR)
-- **BR-ACC07 (Điều kiện chi hoàn tiền)**: Kế toán chỉ được phép thực hiện chi hoàn tiền đối với các hồ sơ đã có trạng thái `Đã duyệt hoàn` từ cấp Admin/Ban Giám đốc.
-- **BR-ACC08 (Tính toàn vẹn của Mã FT)**: Mỗi lệnh hoàn tiền bắt buộc phải có `Mã FT hoàn` duy nhất để đối soát dòng tiền ra trên sao kê ngân hàng.
+- **BR-ACC07 (Điều kiện chi hoàn tiền)**: Kế toán chỉ được phép thực hiện chi hoàn tiền đối với các hồ sơ đã có xác nhận phê duyệt từ Sếp / Ban Lãnh Đạo (`assignedApprover`).
+- **BR-ACC08 (Cập nhật ETA minh bạch cho Sales)**: Khi tiếp nhận hồ sơ hoàn cọc, Kế toán cần thiết lập `etaRefundDate` để Sales có căn cứ thời gian phản hồi với khách hàng.
+- **BR-ACC09 (Tính toàn vẹn của Mã FT)**: Mỗi lệnh hoàn tiền bắt buộc phải có `Mã FT hoàn` duy nhất để đối soát dòng tiền ra trên sao kê ngân hàng.
 
 ---
 
